@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=NIRUX II
+GenericName=Action Platformer
+Comment=NIRUX II - Night of the Daemons: an original C64 style action platformer with its own SID-style music
+Exec=nirux-ii
+Icon=nirux-ii
+Terminal=false
+Categories=Game;ActionGame;
+Keywords=c64;commodore;platformer;retro;gothic;sid;chiptune;nirux;
+StartupNotify=false
+StartupWMClass=nirux-ii
