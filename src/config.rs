@@ -466,7 +466,7 @@ mod tests {
         assert_eq!(pos, 0);
         let back = Save::from_text(&s.to_text());
         assert_eq!(back, s);
-        assert_eq!(back.best_reached(), 2);
+        assert_eq!(back.best_reached(), 3);
         assert!(s.qualifies(45001));
         assert!(!s.qualifies(10));
     }

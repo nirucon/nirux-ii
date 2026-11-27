@@ -21,6 +21,7 @@ pub enum Who {
     Echo,
     Null,
     World,
+    Reaper,
 }
 
 #[derive(Clone, Debug)]
@@ -30,6 +31,8 @@ pub enum Ev {
     Bells,
     /// The Reaper looks on from a height, and reaps.
     Reaper,
+    /// The Reaper walks with NIRUX for a while, reaping the risen dead.
+    ReaperAlly,
     /// More or less rain from here.
     Rain(u32),
     Thunder,
@@ -104,6 +107,11 @@ pub enum EKind {
     Fire,
     Clod,
     Spit,
+    Note,
+    Gear,
+    Shard,
+    Static,
+    Wave,
 }
 
 pub struct EShot {
@@ -128,7 +136,12 @@ struct Reaper {
     x: f32,
     y: f32,
     t: u32,
+    /// Walking with NIRUX (stage 6 on), not only watching.
+    ally: bool,
 }
+
+/// How long the Reaper walks with NIRUX.
+const ALLY_FRAMES: u32 = 1500;
 
 pub struct Stage {
     pub spec: Spec,
@@ -450,7 +463,11 @@ impl Stage {
                     life: 30,
                     max: 30,
                     kind: Pk::Debris,
-                    c: if self.spec.theme == Theme::Marsh {
+                    c: if Map::liquid(self.map.px(self.px, self.py + 2.0))
+                        && self.map.px(self.px, self.py + 2.0) == world::LAVA
+                    {
+                        ORANGE
+                    } else if self.spec.theme == Theme::Marsh {
                         LGREEN
                     } else {
                         LBLUE
@@ -501,6 +518,10 @@ impl Stage {
                 }
                 if kind == Kind::Ghost {
                     e.t = self.rng.below(200);
+                }
+                if kind == Kind::Pendulum {
+                    e.ay = y - 64.0;
+                    e.t = (x as u32) % 180;
                 }
                 self.foes.push(e);
             }
@@ -676,6 +697,10 @@ impl Stage {
         let e = &mut self.foes[i];
         if !e.tangible() || e.hp <= 0 {
             return false;
+        }
+        if e.kind == Kind::Pendulum {
+            out.play(Sfx::Clang);
+            return true;
         }
         // The knight's shield stops what comes at it from the front, except
         // hammers falling from above and the whip.
@@ -878,7 +903,14 @@ impl Stage {
         // Running and crouching.
         self.crouch = inp.down && self.grounded;
         let want = if self.crouch { 0.0 } else { inp.dx() * RUN };
-        let acc = if self.grounded { 0.3 } else { 0.07 };
+        let on_ice = self.grounded && self.map.px(self.px, self.py + 1.0) == world::ICE;
+        let acc = if on_ice {
+            0.035
+        } else if self.grounded {
+            0.3
+        } else {
+            0.07
+        };
         if self.vx < want {
             self.vx = (self.vx + acc).min(want);
         } else if self.vx > want {
@@ -931,7 +963,7 @@ impl Stage {
         if feet == world::SPIKES || (self.grounded && below == world::SPIKES) {
             self.hit_player(st, out, self.px - self.f);
         }
-        if feet == world::WATER || self.map.px(self.px, self.py - 6.0) == world::WATER {
+        if Map::liquid(feet) || Map::liquid(self.map.px(self.px, self.py - 6.0)) {
             self.fell(st, out, true);
         } else if self.py > (self.map.h * T) as f32 + 24.0 {
             self.fell(st, out, false);
@@ -1151,13 +1183,44 @@ impl Stage {
                         e.hp = 0;
                     }
                 }
+                Kind::Pendulum => {
+                    let a = (e.t as f32 * 0.035).sin() * 1.1;
+                    e.x = e.ax + a.sin() * 64.0;
+                    e.y = e.ay + a.cos() * 64.0;
+                }
+                Kind::Icicle => match e.state {
+                    0 => {
+                        if (dx).abs() < 18.0 && py > e.y {
+                            e.state = 1;
+                            e.cd = 22;
+                        }
+                    }
+                    1 => {
+                        e.cd -= 1;
+                        if e.cd <= 0 {
+                            e.state = 2;
+                        }
+                    }
+                    _ => {
+                        e.vy = (e.vy + 0.3).min(6.0);
+                        e.y += e.vy;
+                        if Map::solid(self.map.px(e.x, e.y))
+                            || Map::floor(self.map.px(e.x, e.y)) && e.vy > 1.0
+                        {
+                            e.hp = 0;
+                            self.fx.sparks(e.x, e.y, 6, -1.57);
+                            out.play(Sfx::Clang);
+                        }
+                    }
+                },
                 Kind::Urn => {
                     e.vy = (e.vy + GRAV).min(MAX_FALL);
                     self.walk_body(&mut e);
                 }
             }
             // Touching NIRUX.
-            if e.kind != Kind::Urn && e.tangible() && (e.kind != Kind::Zombie || e.rise == 0) {
+            let harmless = e.kind == Kind::Urn || (e.kind == Kind::Icicle && e.state < 2);
+            if !harmless && e.tangible() && (e.kind != Kind::Zombie || e.rise == 0) {
                 let (hw, hh) = e.kind.size();
                 let ph = self.ph();
                 if (e.x - px).abs() < hw + PW - 1.0 && e.y > py - ph + 2.0 && e.y - hh < py - 1.0 {
@@ -1174,7 +1237,9 @@ impl Stage {
                 }
             }
             // Far behind and forgotten.
-            if e.x < self.cx - 200.0 && e.kind != Kind::Wraith {
+            if e.x < self.cx - 200.0 && e.kind != Kind::Wraith && e.kind != Kind::Pendulum
+                || e.kind == Kind::Pendulum && e.ax < self.cx - 400.0
+            {
                 e.hp = 0;
             }
             self.foes[i] = e;
@@ -1502,7 +1567,41 @@ impl Stage {
             }
         }
         // The Reaper.
-        if let Some(r) = self.reaper.as_mut() {
+        if let Some(r) = self.reaper.as_mut().filter(|r| r.ally) {
+            r.t += 1;
+            // A step behind NIRUX, on the ground.
+            let want = self.px - self.f * 34.0;
+            r.x += (want - r.x) * 0.04;
+            let tx = (r.x / T as f32) as i32;
+            r.y = (self.map.top_at(tx, ((self.py - 40.0) / T as f32) as i32) * T) as f32;
+            if r.t % 80 == 40 {
+                let (rx, ry) = (r.x, r.y);
+                let mut reaped = false;
+                for e in self.foes.iter_mut() {
+                    let near = (e.x - rx).abs() < 120.0 && (e.y - ry).abs() < 80.0;
+                    if near
+                        && matches!(
+                            e.kind,
+                            Kind::Zombie
+                                | Kind::Orphan
+                                | Kind::Daemon
+                                | Kind::Wraith
+                                | Kind::Knight
+                        )
+                    {
+                        e.hp = 0;
+                        reaped = true;
+                        self.fx.explode(e.x, e.y - 8.0, 0.8);
+                    }
+                }
+                if reaped {
+                    out.play(Sfx::Whip);
+                }
+            }
+            if r.t > ALLY_FRAMES {
+                self.reaper = None;
+            }
+        } else if let Some(r) = self.reaper.as_mut() {
             r.t += 1;
             if r.t == 60 {
                 self.bolt = 6;
@@ -1543,8 +1642,22 @@ impl Stage {
                     let x = self.px + 150.0;
                     let tx = (x / T as f32) as i32;
                     let y = (self.map.top_at(tx, 0) * T) as f32;
-                    self.reaper = Some(Reaper { x, y, t: 0 });
+                    self.reaper = Some(Reaper {
+                        x,
+                        y,
+                        t: 0,
+                        ally: false,
+                    });
                     self.say = Some((Who::World, "THE REAPER WATCHES", self.t));
+                }
+                Ev::ReaperAlly => {
+                    let x = self.px - 40.0;
+                    self.reaper = Some(Reaper {
+                        x,
+                        y: self.py,
+                        t: 0,
+                        ally: true,
+                    });
                 }
                 Ev::Rain(n) => self.rain = n,
                 Ev::Thunder => self.thunder(out),
@@ -1554,7 +1667,11 @@ impl Stage {
                     let floor =
                         (self.map.top_at(((self.arena + 200.0) / T as f32) as i32, 0) * T) as f32;
                     self.boss = Some(Boss::new(k, self.arena, floor, self.d));
-                    out.music = Some(SongId::Boss);
+                    out.music = Some(if k == BossKind::Null {
+                        SongId::FinalBoss
+                    } else {
+                        SongId::Boss
+                    });
                     out.play(Sfx::Alarm);
                     // The stragglers leave.
                     self.foes.retain(|e| e.x > self.arena);
@@ -1598,8 +1715,15 @@ impl Stage {
         // In the arena: keep a distance on solid footing, face the boss,
         // fire, and jump what comes.
         if let Some(b) = &self.boss {
-            let (bx, _) = b.center();
+            let (bx, by) = b.center();
             let side = if x < bx { -1.0 } else { 1.0 };
+            // A boss up high: stand off as far as it is high, and aim up.
+            let high = by < y - 36.0;
+            let dist = if high {
+                (y - 14.0 - by).clamp(40.0, 110.0)
+            } else {
+                76.0
+            };
             let side = if (bx - self.arena) < 70.0 {
                 1.0
             } else if (self.arena + W as f32 - bx) < 70.0 {
@@ -1607,7 +1731,7 @@ impl Stage {
             } else {
                 side
             };
-            let want = bx + side * 76.0;
+            let want = bx + side * dist;
             let mut best = x;
             let mut bd = f32::MAX;
             let mut c = self.arena + 12.0;
@@ -1653,6 +1777,7 @@ impl Stage {
                 }
             }
             i.fire = self.t % 2 == 0;
+            i.up = high && self.grounded && (best - x).abs() <= 4.0;
             let danger = self
                 .eshots
                 .iter()
@@ -1674,7 +1799,7 @@ impl Stage {
         let edge = x + f * (PW - 1.0);
         let under = self.map.px(edge, y + 1.0);
         let gap =
-            !Map::floor(under) || self.map.px(edge, y + 9.0) == world::WATER && !Map::floor(under);
+            !Map::floor(under) || Map::liquid(self.map.px(edge, y + 9.0)) && !Map::floor(under);
         let foe_near = self.foes.iter().any(|e| {
             e.tangible()
                 && e.kind != Kind::Urn
@@ -1716,7 +1841,7 @@ impl Stage {
             let floor_at = |px: f32| {
                 (0..12).any(|k| {
                     let v = self.map.px(px, y + 2.0 + k as f32 * 6.0);
-                    Map::floor(v) && v != world::WATER
+                    Map::floor(v) && !Map::liquid(v)
                 })
             };
             if floor_at(x) && !floor_at(x + f * 18.0) {
@@ -1822,10 +1947,11 @@ impl Stage {
 
     fn draw_reaper(&self, fb: &mut Fb, r: &Reaper, ox: i32, oy: i32) {
         let (x, y) = (r.x as i32 + ox, r.y as i32 + oy);
+        let end = if r.ally { ALLY_FRAMES } else { 260 };
         let fade = if r.t < 40 {
             r.t as i32 / 3
-        } else if r.t > 220 {
-            (260 - r.t as i32).max(0) / 3
+        } else if r.t + 40 > end {
+            (end as i32 - r.t as i32).max(0) / 3
         } else {
             16
         };
@@ -1858,7 +1984,14 @@ impl Stage {
         }
         put(fb, x - 2, y - 39, LRED);
         put(fb, x + 1, y - 39, LRED);
-        let swing = if r.t > 100 && r.t < 120 {
+        let swing = if r.ally {
+            let k = r.t % 80;
+            if (30..50).contains(&k) {
+                (k - 30) as i32
+            } else {
+                0
+            }
+        } else if r.t > 100 && r.t < 120 {
             (r.t - 100) as i32
         } else {
             0
@@ -1892,7 +2025,22 @@ impl Level for Stage {
                 (self.px, self.py) = self.safe;
                 self.vy = 0.0;
             }
-            if self.t - t0 > 330 {
+            if let Some(r) = self.reaper.as_mut() {
+                r.t += 1;
+                if r.t == 60 {
+                    self.fx.flash = 4;
+                    out.play(Sfx::Thunder);
+                }
+                if r.t == 110 {
+                    out.play(Sfx::Whip);
+                }
+            }
+            let wait = if self.boss_kind == Some(BossKind::Null) {
+                420
+            } else {
+                330
+            };
+            if self.t - t0 > wait {
                 return Status::Cleared;
             }
             return Status::Playing;
@@ -1943,11 +2091,25 @@ impl Level for Stage {
             }
             self.clear_t = Some(self.t);
             out.music = Some(SongId::Clear);
-            let line = match self.boss_kind {
-                Some(BossKind::Gravedigger) => "NULL: THE DEAD ARE MANY. YOU ARE ONE.",
-                _ => "NULL: DEEPER, THEN. I AM WAITING.",
+            let (who, line) = match self.boss_kind {
+                Some(BossKind::Gravedigger) => (Who::Null, "NULL: THE DEAD ARE MANY. YOU ARE ONE."),
+                Some(BossKind::BogDaemon) => (Who::Null, "NULL: DEEPER, THEN. I AM WAITING."),
+                Some(BossKind::Choir) => (Who::Null, "NULL: THEY SANG FOR ME. NOW SILENCE."),
+                Some(BossKind::ClockWarden) => (Who::Null, "NULL: TIME IS MINE DOWN HERE."),
+                Some(BossKind::FrostWyrm) => (Who::Null, "NULL: COLD. YOU WILL BE COLDER."),
+                Some(BossKind::DaemonLord) => (Who::Null, "NULL: COME, THEN. MY KEEP IS OPEN."),
+                _ => (Who::Reaper, "THE REAPER: WHAT NULL WAS, I TAKE AWAY."),
             };
-            self.say = Some((Who::Null, line, self.t));
+            self.say = Some((who, line, self.t));
+            if self.boss_kind == Some(BossKind::Null) {
+                // The Reaper comes for what is left of NULL.
+                self.reaper = Some(Reaper {
+                    x: self.arena + 260.0,
+                    y: (self.map.top_at(((self.arena + 260.0) / T as f32) as i32, 0) * T) as f32,
+                    t: 0,
+                    ally: false,
+                });
+            }
         }
         self.fx.update();
         self.update_camera();
@@ -2150,6 +2312,45 @@ impl Level for Stage {
                     fb.set(x - 1, y - 1, ORANGE);
                     fb.set(x + 1, y, BLACK);
                 }
+                EKind::Note => {
+                    fb.disc(x, y + 1, 2, if self.t % 10 < 5 { WHITE } else { LGREY });
+                    fb.line(x + 2, y + 1, x + 2, y - 5, LGREY);
+                    fb.line(x + 2, y - 5, x + 4, y - 3, LGREY);
+                }
+                EKind::Gear => {
+                    let a = self.t as f32 * 0.3 * s.vx.signum();
+                    fb.circle(x, y, 4, ORANGE);
+                    for k in 0..4 {
+                        let b = a + k as f32 * 1.571;
+                        fb.set(
+                            x + (b.cos() * 5.0) as i32,
+                            y + (b.sin() * 5.0) as i32,
+                            YELLOW,
+                        );
+                    }
+                    fb.set(x, y, BROWN);
+                }
+                EKind::Shard => {
+                    fb.line(
+                        x,
+                        y,
+                        x - (s.vx * 2.0) as i32,
+                        y - (s.vy * 2.0) as i32,
+                        LBLUE,
+                    );
+                    fb.set(x, y, WHITE);
+                }
+                EKind::Static => {
+                    for k in 0..5 {
+                        let h = (self.t as i32 + k * 7 + x) % 5 - 2;
+                        fb.set(x + h, y + k - 2, if k % 2 == 0 { WHITE } else { LRED });
+                    }
+                }
+                EKind::Wave => {
+                    let c = if self.t % 4 < 2 { LRED } else { WHITE };
+                    fb.line(x - 3, y - 3, x + 3, y + 1, c);
+                    fb.line(x - 3, y + 1, x + 3, y - 3, RED);
+                }
                 EKind::Spit => {
                     fb.disc(x, y, 3, if self.t % 8 < 4 { LGREEN } else { GREEN });
                     fb.set(x - 1, y - 1, WHITE);
@@ -2176,6 +2377,7 @@ impl Level for Stage {
                     Who::Echo => ("ECHO: ", LGREEN, GREEN),
                     Who::Null => ("", LRED, RED),
                     Who::World => ("", WHITE, DGREY),
+                    Who::Reaper => ("", LGREY, BLACK),
                 };
                 let shown = (k as usize).min(s.len() + tag.len());
                 let full = format!("{tag}{s}");

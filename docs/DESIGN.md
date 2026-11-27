@@ -1,8 +1,11 @@
 # NIRUX II - NIGHT OF THE DAEMONS (design)
 
-**Status:** 0.1.0 has the engine, the prologue, stage 1 (The Process
-Graveyard, the Gravedigger) and stage 2 (The Swap Marsh, the Bog Daemon).
-The rest below is the plan for the coming releases.
+**Status:** complete in 0.2.0: the prologue, all seven stages with their
+bosses, the Reaper's reveal and the ending. What was planned and what was
+built differ in small ways: the Choir has three heads that fall one by one,
+the Frost Wyrm rests at the edge every third time to breathe ice, and NULL
+fights in three phases (bursts and teleports, then its fragments, then
+sweeps of static).
 
 The design of the second NIRUX game: a gothic action platformer in
 the spirit of the 1980s castle and graveyard games, set in the NIRUX world

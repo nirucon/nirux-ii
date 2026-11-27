@@ -11,6 +11,12 @@ pub enum SongId {
     Legend,
     Stage1,
     Stage2,
+    Stage3,
+    Stage4,
+    Stage5,
+    Stage6,
+    Stage7,
+    FinalBoss,
     Boss,
     GameOver,
     Clear,
@@ -22,6 +28,12 @@ pub const ALL: &[SongId] = &[
     SongId::Legend,
     SongId::Stage1,
     SongId::Stage2,
+    SongId::Stage3,
+    SongId::Stage4,
+    SongId::Stage5,
+    SongId::Stage6,
+    SongId::Stage7,
+    SongId::FinalBoss,
     SongId::Boss,
     SongId::GameOver,
     SongId::Clear,
@@ -35,6 +47,12 @@ impl SongId {
             SongId::Legend => "legend",
             SongId::Stage1 => "stage1",
             SongId::Stage2 => "stage2",
+            SongId::Stage3 => "stage3",
+            SongId::Stage4 => "stage4",
+            SongId::Stage5 => "stage5",
+            SongId::Stage6 => "stage6",
+            SongId::Stage7 => "stage7",
+            SongId::FinalBoss => "finalboss",
             SongId::Boss => "boss",
             SongId::GameOver => "gameover",
             SongId::Clear => "clear",
@@ -47,10 +65,16 @@ impl SongId {
             SongId::Legend => "Descent (the prologue)",
             SongId::Stage1 => "Graveyard (stage 1)",
             SongId::Stage2 => "Marsh (stage 2)",
+            SongId::Stage3 => "Cathedral (stage 3)",
+            SongId::Stage4 => "Clockwork (stage 4)",
+            SongId::Stage5 => "Frost (stage 5)",
+            SongId::Stage6 => "Kernel (stage 6)",
+            SongId::Stage7 => "The Keep (stage 7)",
+            SongId::FinalBoss => "Null (the last battle)",
             SongId::Boss => "The Bells Toll (bosses)",
             SongId::GameOver => "Signal Lost (game over)",
             SongId::Clear => "Deeper (stage clear)",
-            SongId::Ending => "To Be Continued (ending)",
+            SongId::Ending => "Home (the ending)",
         }
     }
     pub fn from_name(s: &str) -> Option<SongId> {
@@ -185,6 +209,12 @@ pub fn build(id: SongId) -> Song {
         SongId::Legend => legend(),
         SongId::Stage1 => stage1(),
         SongId::Stage2 => stage2(),
+        SongId::Stage3 => stage3(),
+        SongId::Stage4 => stage4(),
+        SongId::Stage5 => stage5(),
+        SongId::Stage6 => stage6(),
+        SongId::Stage7 => stage7(),
+        SongId::FinalBoss => final_boss(),
         SongId::Boss => boss(),
         SongId::GameOver => game_over(),
         SongId::Clear => clear(),
@@ -346,6 +376,183 @@ fn stage2() -> Song {
          c6:4 e6:4 a6:8 | f#6:4 d#6:4 b5:8 | e6:12 b5:4 | e5:16",
     );
     b.echo(2, 1, at, 128, 4, ECHO);
+    b.finish()
+}
+
+/// "Cathedral": G minor, an organ of pulse chords, a slow solemn lead
+/// that climbs like the stairs.
+fn stage3() -> Song {
+    let mut b = SongB::new("stage3", 7, kit(0.8));
+    b.song.res = 0.65;
+    let intro = "Gm:16 Eb:16 Cm:16 D:16";
+    b.cutoff(0, 400.0).cutoff(63, 1600.0);
+    b.groove(0, intro, "b.......b.......", 2, BASS, DR);
+    b.groove(1, intro, "C...............", 4, ARP, DR);
+    b.mel(2, PAD, "d5:16 | g5:16 | eb5:16 | f#5:16");
+    b.mark_loop();
+    let at = b.sync("hymn");
+    let hymn = "Gm:16 Dm:16 Eb:16 Bb:16 Cm:16 Gm:16 Am:16 D:16";
+    b.cutoff(at, 1500.0);
+    b.groove(0, hymn, "K.......S...b...", 2, BASS, DR);
+    b.groove(1, hymn, "C.......C.......", 4, ARP, DR);
+    b.mel(
+        2,
+        LEAD,
+        "g5:8 bb5:4 d6:4 | f6:8 d6:8 | eb6:6 d6:2 c6:8 | d6:12 bb5:4 |
+         c6:8 eb6:4 g6:4 | g6:6 f6:2 d6:8 | c6:4 d6:4 eb6:4 c6:4 | d6:16",
+    );
+    let at = b.sync("rise");
+    let rise = "Eb:16 F:16 Gm:16 Gm:16 Cm:16 D:16 Gm:16 D:16";
+    b.cutoff(at, 2200.0).cutoff(at + 127, 2800.0);
+    b.groove(0, rise, "K.obS.obK.obS.oS", 2, BASS, DR);
+    b.mel(
+        2,
+        SAW,
+        "g5:4 bb5:4 eb6:8 | a5:4 c6:4 f6:8 | bb5:4 d6:4 g6:8 | g6:16 |
+         eb6:4 g6:4 c7:8 | a6:4 f#6:4 d6:8 | g6:4 d6:4 bb5:8 | a5:8 f#5:8",
+    );
+    b.echo(2, 1, at, 128, 3, ECHO);
+    b.finish()
+}
+
+/// "Clockwork": B minor, ticking hats, a staccato pluck that keeps time.
+fn stage4() -> Song {
+    let mut b = SongB::new("stage4", 5, kit(1.1));
+    b.song.res = 0.5;
+    let intro = "Bm:16 G:16 Em:16 F#:16";
+    b.cutoff(0, 600.0).cutoff(63, 2200.0);
+    b.groove(0, intro, "KhbhShbhKhbhShbh", 2, BASS, DR);
+    b.groove(1, intro, "c.c.c.c.c.c.c.c.", 4, ARP, DR);
+    b.rest(2, 64);
+    b.mark_loop();
+    let at = b.sync("tick");
+    let tick = "Bm:16 G:16 Em:16 F#:16 Bm:16 G:16 A:16 F#:16";
+    b.cutoff(at, 2000.0);
+    b.groove(0, tick, "K.boS.boK.boS.bo", 2, BASS, DR);
+    b.groove(1, tick, "c.c.c.c.c.c.c.c.", 4, ARP, DR);
+    b.mel(
+        2,
+        PLUCK,
+        "b5:2 r:2 d6:2 r:2 f#6:4 d6:4 | g5:2 r:2 b5:2 r:2 d6:8 | e5:2 r:2 g5:2 r:2 b5:4 e6:4 | c#6:8 a#5:8 |
+         b5:2 r:2 d6:2 r:2 f#6:4 b6:4 | g6:4 f#6:4 e6:4 d6:4 | c#6:4 e6:4 a6:8 | f#6:16",
+    );
+    let at = b.sync("wind");
+    let wind = "G:16 A:16 F#m:16 Bm:16 G:16 A:16 F#:16 F#:16";
+    b.cutoff(at, 2600.0);
+    b.groove(0, wind, "K.obS.obK.obS.oS", 2, BASS, DR);
+    b.mel(
+        2,
+        SAW,
+        "b5:4 d6:4 g6:8 | c#6:4 e6:4 a6:8 | a6:4 f#6:4 c#6:8 | d6:6 c#6:2 b5:8 |
+         g6:4 b6:4 d7:8 | e7:4 c#7:4 a6:8 | f#6:4 a#6:4 c#7:8 | c#7:16",
+    );
+    b.echo(2, 1, at, 128, 3, ECHO);
+    b.finish()
+}
+
+/// "Frost": F sharp minor, sparse and glassy, bells in the arpeggio.
+fn stage5() -> Song {
+    let mut b = SongB::new("stage5", 7, kit(0.7));
+    b.song.res = 0.6;
+    let intro = "F#m:16 D:16 Bm:16 C#:16";
+    b.cutoff(0, 800.0).cutoff(63, 2600.0);
+    b.groove(0, intro, "b...............", 2, BASS, DR);
+    b.groove(1, intro, "c.c.c.c.c.c.c.c.", 4, ARP, DR);
+    b.mel(2, PAD, "c#6:16 | a5:16 | f#5:16 | g#5:16");
+    b.mark_loop();
+    let at = b.sync("snow");
+    let snow = "F#m:16 D:16 A:16 E:16 F#m:16 D:16 Bm:16 C#:16";
+    b.cutoff(at, 2400.0);
+    b.groove(0, snow, "K.......S..ob...", 2, BASS, DR);
+    b.groove(1, snow, "c.c.c.c.c.c.c.c.", 4, ARP, DR);
+    b.mel(
+        2,
+        LEAD,
+        "f#6:8 e6:4 c#6:4 | d6:12 a5:4 | e6:8 c#6:4 a5:4 | b5:12 g#5:4 |
+         a5:4 c#6:4 f#6:8 | a6:6 g#6:2 f#6:8 | d6:4 f#6:4 b6:8 | g#6:16",
+    );
+    b.finish()
+}
+
+/// "Kernel": D minor, hammering, a riff in the bass, fire in the lead.
+fn stage6() -> Song {
+    let mut b = SongB::new("stage6", 4, kit(1.3));
+    b.song.res = 0.5;
+    let intro = "Dm:16 Dm:16 Bb:16 A:16";
+    b.cutoff(0, 700.0).cutoff(63, 2600.0);
+    b.groove(0, intro, "KbbbSbbbKbbbSbSS", 2, BASS, DR);
+    b.groove(1, intro, "c...c...c...c.c.", 4, ARP, DR);
+    b.rest(2, 64);
+    b.mark_loop();
+    let at = b.sync("riff");
+    let riff = "Dm:16 C:16 Bb:16 A:16 Dm:16 C:16 Gm:16 A:16";
+    b.cutoff(at, 2400.0);
+    b.groove(0, riff, "KobbSobbKobbSobS", 2, BASS, DR);
+    b.mel(
+        2,
+        SAW,
+        "d6:2 d6:2 f6:4 a6:8 | g6:2 g6:2 e6:4 c6:8 | f6:4 d6:4 bb5:4 d6:4 | e6:8 c#6:8 |
+         d6:2 d6:2 f6:4 a6:4 d7:4 | c7:4 bb6:4 g6:8 | bb6:4 a6:4 g6:4 f6:4 | e6:12 a5:4",
+    );
+    b.echo(2, 1, at, 128, 2, ECHO);
+    b.finish()
+}
+
+/// "The Keep": C minor, grand and dark, the hero's call in a minor key over
+/// marching drums.
+fn stage7() -> Song {
+    let mut b = SongB::new("stage7", 6, kit(1.0));
+    b.song.res = 0.6;
+    let intro = "Cm:16 Ab:16 Fm:16 G:16";
+    b.cutoff(0, 300.0).cutoff(63, 1800.0);
+    b.groove(0, intro, "K.......K...S...", 2, BASS, DR);
+    b.groove(1, intro, "C...............", 4, ARP, DR);
+    b.mel(2, PAD, "g5:16 | eb5:16 | c5:16 | b4:16");
+    b.mark_loop();
+    let at = b.sync("call");
+    let call = "Cm:16 Ab:16 Eb:16 Bb:16 Cm:16 Ab:16 Fm:16 G:16";
+    b.cutoff(at, 1700.0).cutoff(at + 127, 2600.0);
+    b.groove(0, call, "K.boS.boK.boSSSS", 2, BASS, DR);
+    b.mel(
+        2,
+        SAW,
+        "c5:4 g5:4 c6:8 | eb6:4 c6:4 ab5:8 | g5:4 bb5:4 eb6:8 | d6:6 c6:2 bb5:8 |
+         c5:4 g5:4 c6:8 | eb6:4 f6:4 c6:8 | ab5:4 c6:4 f6:8 | g6:12 d6:4",
+    );
+    b.echo(2, 1, at, 128, 3, ECHO);
+    b.finish()
+}
+
+/// "Null": E minor, the fastest of all, the bass never resting, the lead
+/// broken up like static.
+fn final_boss() -> Song {
+    let mut b = SongB::new("finalboss", 4, kit(1.4));
+    b.song.res = 0.45;
+    b.mark_loop();
+    let at = b.sync("a");
+    let a = "Em:16 Em:16 C:16 B:16 Em:16 Em:16 C:16 D:16";
+    b.cutoff(at, 2400.0).cutoff(at + 127, 3400.0);
+    b.groove(0, a, "KbobSbobKbobSbSS", 2, BASS, DR);
+    b.groove(1, a, "c.c.c.c.c.c.c.c.", 4, ARP, DR);
+    b.mel(
+        2,
+        SAW,
+        "e6:2 r:2 e6:2 g6:2 b6:4 e7:4 | d7:2 r:2 b6:2 g6:2 e6:8 | c7:4 b6:4 g6:4 e6:4 | f#6:8 d#6:8 |
+         e6:2 g6:2 b6:2 e7:2 g7:4 e7:4 | d7:4 b6:4 g6:8 | a6:4 g6:4 e6:4 c6:4 | d6:8 f#6:8",
+    );
+    let at = b.sync("b");
+    let bb = "Am:16 Em:16 F:16 B:16";
+    b.cutoff(at, 1800.0).cutoff(at + 63, 3400.0);
+    b.groove(0, bb, "K.b.S.b.KKb.S.SS", 2, BASS, DR);
+    b.groove(1, bb, "c...c...c...c...", 4, ARP, DR);
+    b.mel(
+        2,
+        PLUCK,
+        "a5 c6 e6 a6 e6 c6 a5 c6 e6 a6 c7 a6 e6 c6 a5 e5 |
+         e5 g5 b5 e6 b5 g5 e5 g5 b5 e6 g6 e6 b5 g5 e5 b4 |
+         f5 a5 c6 f6 c6 a5 f5 a5 c6 f6 a6 f6 c6 a5 f5 c5 |
+         b5 d#6 f#6 b6 f#6 d#6 b5 d#6 f#6 b6 d#7 b6 f#6 d#6 b5 f#5",
+    );
     b.finish()
 }
 

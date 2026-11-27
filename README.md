@@ -6,7 +6,7 @@ follows NULL down into the Undercroft, where the deleted things go.
 Sixteen C64 colours, raster bars, rain and lightning, and a gothic
 soundtrack played live by a SID-style synthesiser written for the games.
 
-**Status: stages 1 and 2 (0.1.0), more to come** · Part of the [NIRUX](https://github.com/nirucon/nirux) suite · [MIT License](LICENSE)
+**Status: the whole game, seven stages (0.2.0)** · Part of the [NIRUX](https://github.com/nirucon/nirux) suite · [MIT License](LICENSE)
 
 ![NIRUX II title screen](docs/screenshots/title.png)
 
@@ -16,8 +16,13 @@ More screenshots: [the prologue](docs/screenshots/story.png),
 [the cron bells](docs/screenshots/bells.png),
 [the Gravedigger](docs/screenshots/gravedigger.png),
 [the Swap Marsh](docs/screenshots/stage2.png),
+[the Archive Cathedral](docs/screenshots/stage3.png),
+[the Frost Wyrm](docs/screenshots/frostwyrm.png),
+[the Reaper at your side](docs/screenshots/reaper.png),
+[the Daemon Lord](docs/screenshots/daemonlord.png),
+[NULL](docs/screenshots/null.png),
 [the controls](docs/screenshots/controls.png),
-[the ending so far](docs/screenshots/ending.png).
+[the ending](docs/screenshots/ending.png).
 
 ## The story
 
@@ -28,20 +33,21 @@ orphaned ones hunt in swarms, and the old daemons that served the system
 now serve NULL. Every night the cron bells ring and the Undercroft wakes.
 
 ECHO, the voice of the Core, cannot follow far; its signal breaks up the
-deeper you go. A stranger called the Reaper watches from the hills. NIRUX
-goes down alone.
+deeper you go. A stranger called the Reaper watches from the hills, and in
+the Kernel Crypt it finally takes a side. At the bottom of the Undercroft
+waits NULL's Keep, and NULL itself.
 
 If you have beaten the first game on this computer, NIRUX II welcomes you
 back and starts you with an extra life.
 
 The canon for the hero, the world and the music is
-[docs/LORE.md](docs/LORE.md), shared with the first game. The plan for the
-whole game, seven stages and NULL's Keep, is in
+[docs/LORE.md](docs/LORE.md), shared with the first game. The design is in
 [docs/DESIGN.md](docs/DESIGN.md).
 
 ## How it plays
 
-Run, jump, climb and fight through stages of a few minutes each. Every
+Run, jump, climb and fight through seven stages of a few minutes each,
+about 30 to 45 minutes for the whole game when it goes well. Every
 stage you reach stays open in **Level select**, so one stage now and then
 is a game of its own.
 
@@ -61,17 +67,27 @@ is a game of its own.
   weapon.
 - **The cron bells** toll three times, then wraiths sweep across the
   screen: high ones to duck, low ones to jump.
-- **Falling** into a pit or the black water burns a piece of the scarf and
-  puts you back on the last firm ground.
+- **Falling** into a pit, the black water or the lava burns a piece of the
+  scarf and puts you back on the last firm ground.
+- **Clockwork ledges** in the Cron Tower come and go on the tower's tick and
+  flicker before they go; **ice** is slippery, so stop early; **icicles**
+  fall when you pass under them; **pendulums** cannot be destroyed, only
+  timed.
 
 | Stage | Name | Boss |
 | --- | --- | --- |
 | 1 | The Process Graveyard | the Gravedigger, who digs under you |
 | 2 | The Swap Marsh | the Bog Daemon, who rises where it chooses |
+| 3 | The Archive Cathedral (a climb) | the Choir of the Deleted, three singing heads |
+| 4 | The Cron Tower | the Clockwork Warden, rolling gears and shock waves |
+| 5 | The Frozen Cache | the Frost Wyrm, breaking out of the ice |
+| 6 | The Kernel Crypt | the Daemon Lord, fire from the air |
+| 7 | NULL's Keep | NULL, in three phases |
 
-Enemies so far: zombie processes rising from their graves, orphans in
-swarms, winged daemons, ghost files that drift through walls, knights with
-shields, fork bombs that split, and the wraiths of the bells.
+Enemies: zombie processes rising from their graves, orphans in swarms,
+winged daemons, ghost files that drift through walls, knights with shields,
+fork bombs that split, the wraiths of the bells, and the pendulums and
+icicles of the deeper stages.
 
 ## Controls
 
@@ -97,9 +113,15 @@ entry in the title and pause menus shows the same table.
 | Descent | the prologue, A minor |
 | Graveyard | stage 1, A minor, driving, with a harpsichord run |
 | Marsh | stage 2, E minor, slow and murky |
+| Cathedral | stage 3, G minor, an organ hymn |
+| Clockwork | stage 4, B minor, ticking |
+| Frost | stage 5, F sharp minor, glassy |
+| Kernel | stage 6, D minor, hammering |
+| The Keep | stage 7, C minor, the hero's call in a dark key |
 | The Bells Toll | the bosses, C minor |
+| Null | the last battle, E minor |
 | Deeper | after a stage |
-| To Be Continued | the ending so far |
+| Home | the ending |
 | Signal Lost | game over |
 
 `nirux-ii --render-wav SONG FILE` writes any of them to a WAV file
@@ -126,7 +148,7 @@ It needs X11 and nothing else; sound goes through `pw-cat`, `pacat` or
 ```text
 nirux-ii                  play (fullscreen unless the settings say otherwise)
 nirux-ii --windowed       play in a window
-nirux-ii --level N        start a game at stage N (1 to 2)
+nirux-ii --level N        start a game at stage N (1 to 7)
 nirux-ii --demo           start in the attract mode
 nirux-ii --selftest [FRAMES]
                           play every stage on every difficulty with the

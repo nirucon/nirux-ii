@@ -23,6 +23,11 @@ pub enum Kind {
     Wraith,
     /// Breaks and drops what it holds.
     Urn,
+    /// A blade on a chain, swinging from the clock tower's beams. It cannot
+    /// be destroyed; time the way past.
+    Pendulum,
+    /// Hangs from a cave roof and falls when NIRUX walks under it.
+    Icicle,
 }
 
 impl Kind {
@@ -37,6 +42,8 @@ impl Kind {
             Kind::ForkBit => 1,
             Kind::Wraith => 1,
             Kind::Urn => 1,
+            Kind::Pendulum => 9999,
+            Kind::Icicle => 1,
         }
     }
     pub fn score(self) -> u32 {
@@ -50,6 +57,8 @@ impl Kind {
             Kind::ForkBit => 100,
             Kind::Wraith => 100,
             Kind::Urn => 10,
+            Kind::Pendulum => 0,
+            Kind::Icicle => 50,
         }
     }
     /// The hit box: half width and height above the feet.
@@ -64,6 +73,8 @@ impl Kind {
             Kind::ForkBit => (3.0, 6.0),
             Kind::Wraith => (6.0, 8.0),
             Kind::Urn => (4.0, 13.0),
+            Kind::Pendulum => (6.0, 8.0),
+            Kind::Icicle => (3.0, 12.0),
         }
     }
 }
@@ -99,6 +110,9 @@ pub struct Foe {
     /// A ghost is solid and seen while this is set (or while lit).
     pub shown: bool,
     pub lit: bool,
+    /// Where it hangs from or started (pendulums, icicles).
+    pub ax: f32,
+    pub ay: f32,
 }
 
 impl Foe {
@@ -121,6 +135,8 @@ impl Foe {
             on_ground: false,
             shown: kind != Kind::Ghost,
             lit: false,
+            ax: x,
+            ay: y,
         }
     }
 
@@ -318,6 +334,46 @@ impl Foe {
                 fb.disc(sx, sy - 5, 3, c(LGREY));
                 fb.set(fx(1), sy - 6, c(LRED));
                 fb.set(fx(2), sy - 6, c(LRED));
+            }
+            Kind::Pendulum => {
+                // The chain from the anchor, the blade at its end.
+                let anchor = (
+                    sx + (self.ax - self.x) as i32,
+                    sy + (self.ay - self.y) as i32,
+                );
+                let n = 14;
+                for k in 0..n {
+                    let x = anchor.0 + (sx - anchor.0) * k / n;
+                    let y = anchor.1 + (sy - 8 - anchor.1) * k / n;
+                    fb.set(x, y, if k % 2 == 0 { GREY } else { DGREY });
+                }
+                fb.disc(anchor.0, anchor.1, 2, BROWN);
+                fb.disc(sx, sy - 6, 6, LGREY);
+                fb.disc(sx, sy - 6, 4, GREY);
+                fb.hline(sx - 6, sx + 6, sy - 6, WHITE);
+                fb.disc(sx, sy - 6, 1, BLACK);
+            }
+            Kind::Icicle => {
+                let shake = if self.state == 1 {
+                    ((t / 2) % 2) as i32
+                } else {
+                    0
+                };
+                for k in 0..12 {
+                    let w = (12 - k) / 4;
+                    fb.hline(
+                        sx - w + shake,
+                        sx + w + shake,
+                        sy - 12 + k,
+                        if k < 3 {
+                            WHITE
+                        } else if w > 0 {
+                            LBLUE
+                        } else {
+                            CYAN
+                        },
+                    );
+                }
             }
             Kind::Urn => {
                 fb.rect(sx - 3, sy - 9, 7, 8, c(ORANGE));

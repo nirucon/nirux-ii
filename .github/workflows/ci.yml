@@ -29,7 +29,7 @@ jobs:
         run: cargo build --release --locked
       - name: Render the soundtrack
         run: |
-          for s in title legend stage1 stage2 boss gameover clear ending; do
+          for s in title legend stage1 stage2 stage3 stage4 stage5 stage6 stage7 boss finalboss gameover clear ending; do
             target/release/nirux-ii --render-wav "$s" "$RUNNER_TEMP/$s.wav" 20
           done
       - name: End-to-end X11 test

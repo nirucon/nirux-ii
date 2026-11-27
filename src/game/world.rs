@@ -25,11 +25,35 @@ pub const HIDDEN: u8 = 7;
 pub const BRICK: u8 = 8;
 /// The top of a ladder that is also a platform.
 pub const LADDER_TOP: u8 = 9;
+/// Burns like water drowns.
+pub const LAVA: u8 = 10;
+/// Solid, and slippery.
+pub const ICE: u8 = 11;
+/// Clockwork ledges: the A ones are there while the B ones are gone, and
+/// the other way round, switching on the tower's clock.
+pub const TA_ON: u8 = 12;
+pub const TA_OFF: u8 = 13;
+pub const TB_ON: u8 = 14;
+pub const TB_OFF: u8 = 15;
+/// Frames between the clock's switches.
+pub const TICK: u32 = 150;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Theme {
     Graveyard,
     Marsh,
+    Cathedral,
+    Tower,
+    Ice,
+    Crypt,
+    Keep,
+}
+
+impl Theme {
+    /// Under a roof or underground: no moon, no stars, no rain.
+    pub fn indoor(self) -> bool {
+        matches!(self, Theme::Cathedral | Theme::Ice | Theme::Crypt)
+    }
 }
 
 /// Scenery drawn behind the action; it never collides.
@@ -47,6 +71,12 @@ pub enum Deco {
     Stump,
     Skull,
     Tomb,
+    Window,
+    Gear,
+    Torch,
+    Banner,
+    Crystal,
+    Bones,
 }
 
 pub struct Map {
@@ -58,6 +88,10 @@ pub struct Map {
     pub seen: Vec<bool>,
     /// Crumbling tiles: frames since stood on (0 = untouched).
     pub crumble: Vec<u16>,
+    /// The clock for the clockwork ledges.
+    pub clock: u32,
+    /// Rows at the top that are a cave roof, never a floor to look for.
+    pub roof: i32,
 }
 
 impl Map {
@@ -70,6 +104,8 @@ impl Map {
             deco: Vec::new(),
             seen: vec![false; n],
             crumble: vec![0; n],
+            clock: 0,
+            roof: 0,
         }
     }
 
@@ -108,12 +144,23 @@ impl Map {
     }
 
     pub fn solid(v: u8) -> bool {
-        v == SOLID || v == BRICK
+        v == SOLID || v == BRICK || v == ICE
     }
 
     /// Tiles you can stand on from above.
     pub fn floor(v: u8) -> bool {
-        Self::solid(v) || v == PLAT || v == CRUMBLE || v == HIDDEN || v == LADDER_TOP
+        Self::solid(v)
+            || v == PLAT
+            || v == CRUMBLE
+            || v == HIDDEN
+            || v == LADDER_TOP
+            || v == TA_ON
+            || v == TB_ON
+    }
+
+    /// Water or lava: falling in costs a piece of the scarf.
+    pub fn liquid(v: u8) -> bool {
+        v == WATER || v == LAVA
     }
 
     pub fn ladder(v: u8) -> bool {
@@ -158,10 +205,18 @@ impl Map {
     }
 
     pub fn water(&mut self, x0: i32, x1: i32, top: i32) {
+        self.liquid_fill(x0, x1, top, WATER);
+    }
+
+    pub fn lava(&mut self, x0: i32, x1: i32, top: i32) {
+        self.liquid_fill(x0, x1, top, LAVA);
+    }
+
+    fn liquid_fill(&mut self, x0: i32, x1: i32, top: i32, v: u8) {
         for x in x0..=x1 {
             for y in top..self.h {
                 if self.at(x, y) == EMPTY {
-                    self.set(x, y, WATER);
+                    self.set(x, y, v);
                 }
             }
         }
@@ -177,13 +232,25 @@ impl Map {
 
     /// The row of the first floor at or below row y in column x.
     pub fn top_at(&self, x: i32, from: i32) -> i32 {
-        (from.max(0)..self.h)
+        (from.max(self.roof)..self.h)
             .find(|&y| Self::floor(self.at(x, y)))
             .unwrap_or(self.h)
     }
 
     /// A step of the crumbling ledges; returns the tiles that fell.
     pub fn update(&mut self) -> Vec<(i32, i32)> {
+        self.clock += 1;
+        if self.clock % TICK == 0 {
+            for v in self.t.iter_mut() {
+                *v = match *v {
+                    TA_ON => TA_OFF,
+                    TA_OFF => TA_ON,
+                    TB_ON => TB_OFF,
+                    TB_OFF => TB_ON,
+                    x => x,
+                };
+            }
+        }
         let mut fell = Vec::new();
         for i in 0..self.crumble.len() {
             let c = self.crumble[i];
@@ -258,6 +325,56 @@ pub fn palette(th: Theme) -> Palette {
             mid: BLACK,
             water: [BLACK, GREEN],
         },
+        Theme::Cathedral => Palette {
+            earth: [DGREY, BLACK, GREY],
+            top: [GREY, LGREY],
+            stone: [DGREY, GREY, LGREY],
+            wood: [BROWN, ORANGE],
+            sky: [BLACK, PURPLE, BLUE],
+            far: BLUE,
+            mid: BLACK,
+            water: [BLUE, LBLUE],
+        },
+        Theme::Tower => Palette {
+            earth: [BROWN, BLACK, ORANGE],
+            top: [ORANGE, YELLOW],
+            stone: [BROWN, ORANGE, YELLOW],
+            wood: [BROWN, ORANGE],
+            sky: [BLACK, BROWN, RED],
+            far: BROWN,
+            mid: BLACK,
+            water: [BLUE, LBLUE],
+        },
+        Theme::Ice => Palette {
+            earth: [BLUE, BLACK, LBLUE],
+            top: [LBLUE, WHITE],
+            stone: [BLUE, LBLUE, CYAN],
+            wood: [BROWN, ORANGE],
+            sky: [BLACK, BLUE, LBLUE],
+            far: BLUE,
+            mid: BLACK,
+            water: [BLUE, CYAN],
+        },
+        Theme::Crypt => Palette {
+            earth: [DGREY, BLACK, BROWN],
+            top: [BROWN, ORANGE],
+            stone: [BLACK, DGREY, GREY],
+            wood: [BROWN, ORANGE],
+            sky: [BLACK, RED, BROWN],
+            far: BROWN,
+            mid: BLACK,
+            water: [RED, ORANGE],
+        },
+        Theme::Keep => Palette {
+            earth: [DGREY, BLACK, PURPLE],
+            top: [PURPLE, LRED],
+            stone: [DGREY, GREY, LGREY],
+            wood: [BROWN, ORANGE],
+            sky: [BLACK, PURPLE, RED],
+            far: PURPLE,
+            mid: BLACK,
+            water: [RED, LRED],
+        },
     }
 }
 
@@ -273,6 +390,10 @@ pub fn draw_sky(fb: &mut Fb, th: Theme, cx: f32, cy: f32, t: u32, flash: u8) {
         }
     }
     if flash > 0 {
+        return;
+    }
+    if th.indoor() {
+        draw_inside(fb, th, &p, cx, cy, t);
         return;
     }
     // Stars in the dark part.
@@ -353,6 +474,88 @@ pub fn draw_sky(fb: &mut Fb, th: Theme, cx: f32, cy: f32, t: u32, flash: u8) {
             fb.set(x, hy - 18 - d / 2, p.mid);
             fb.set(x, hy - 24 + d / 3, p.mid);
         }
+    }
+}
+
+/// Under a roof or underground: arches and tall windows in the cathedral,
+/// hanging rock and crystals in the caves, a glow from below in the crypt.
+fn draw_inside(fb: &mut Fb, th: Theme, p: &Palette, cx: f32, cy: f32, t: u32) {
+    // Far: arches or hanging rock, scrolled slowly.
+    for x in 0..W {
+        let wx = x as f32 + cx * 0.2;
+        let k = (wx / 64.0).floor() as i32;
+        let lx = wx - k as f32 * 64.0;
+        match th {
+            Theme::Cathedral => {
+                // Pillars and pointed arches, a lancet window in each bay.
+                let top = 40 - (cy * 0.1) as i32;
+                let pillar = lx < 10.0;
+                let arch = {
+                    let u = (lx - 37.0).abs() / 27.0;
+                    top + (u * u * 40.0) as i32
+                };
+                for y in HUD_H..H {
+                    let inwin = (28.0..46.0).contains(&lx) && y > top + 30 && y < top + 100;
+                    if pillar || y < arch {
+                        fb.set(x, y, p.far);
+                    } else if inwin {
+                        let wy = y - top;
+                        let pane = (lx as i32 / 3 + wy / 6) % 4;
+                        let c = [PURPLE, BLUE, RED, CYAN][pane as usize];
+                        let lead = (lx as i32) % 6 == 0 || wy % 12 == 0;
+                        fb.set(
+                            x,
+                            y,
+                            if lead {
+                                BLACK
+                            } else if dith(x, y, 10) {
+                                c
+                            } else {
+                                BLACK
+                            },
+                        );
+                    }
+                }
+            }
+            _ => {
+                let h = hash(k, 5);
+                let len = 20 + (h % 40) as i32;
+                let tip = (lx - 32.0).abs()
+                    < (len as f32 * 0.3) * (1.0 - (lx - 32.0).abs() / 32.0).max(0.0) + 3.0;
+                for y in HUD_H..HUD_H + 18 + if tip { len } else { 0 } {
+                    fb.set(x, y, p.far);
+                }
+                let floor = H - 30 - (hash(k * 3, 1) % 20) as i32 - (cy * 0.1) as i32;
+                for y in floor.max(HUD_H)..H {
+                    fb.set(x, y, p.far);
+                }
+            }
+        }
+    }
+    // Near: crystals in the ice, a red glow in the crypt.
+    match th {
+        Theme::Ice => {
+            for i in 0..14 {
+                let h = hash(i, 21);
+                let x = ((h % 640) as f32 - cx * 0.5).rem_euclid(W as f32 + 40.0) as i32 - 20;
+                let y = H - 40 + (h >> 9) as i32 % 30;
+                let tw = (t / 9 + h) % 40 == 0;
+                fb.line(x, y, x + 3, y - 14, if tw { WHITE } else { LBLUE });
+                fb.line(x + 1, y, x + 4, y - 14, CYAN);
+                fb.line(x + 6, y, x + 4, y - 9, LBLUE);
+            }
+        }
+        Theme::Crypt => {
+            for y in H - 50..H {
+                let k = (y - (H - 50)) / 4;
+                for x in 0..W {
+                    if dith(x + (t / 8) as i32, y, k.min(10)) && (x + y) % 2 == 0 {
+                        fb.set(x, y, if k > 8 { ORANGE } else { RED });
+                    }
+                }
+            }
+        }
+        _ => {}
     }
 }
 
@@ -544,6 +747,72 @@ fn draw_tile(fb: &mut Fb, m: &Map, p: &Palette, tx: i32, ty: i32, v: u8, sx: i32
                 }
             }
         }
+        LAVA => {
+            let surface = above != LAVA;
+            for y in 0..T {
+                for x in 0..T {
+                    let (wx, wy) = (tx * T + x, ty * T + y);
+                    let bub = ((wx as f32 * 0.3 + t as f32 * 0.08).sin() * 1.5) as i32;
+                    let c = if surface && y <= bub.clamp(0, 2) {
+                        if (wx + t as i32 / 3) % 5 == 0 {
+                            YELLOW
+                        } else {
+                            ORANGE
+                        }
+                    } else if dith(wx, wy + (t / 4) as i32, 5) {
+                        ORANGE
+                    } else {
+                        RED
+                    };
+                    fb.set(sx + x, sy + y, c);
+                }
+            }
+        }
+        ICE => {
+            let open = !Map::solid(above);
+            for y in 0..T {
+                for x in 0..T {
+                    let (wx, wy) = (tx * T + x, ty * T + y);
+                    let c = if open && y == 0 {
+                        WHITE
+                    } else if open && y == 1 {
+                        CYAN
+                    } else if (wx - wy).rem_euclid(9) == 0 {
+                        LBLUE
+                    } else if dith(wx, wy, 6) {
+                        BLUE
+                    } else {
+                        LBLUE
+                    };
+                    fb.set(sx + x, sy + y, c);
+                }
+            }
+            if open && (t / 5 + hash(tx, 9)) % 60 == 0 {
+                fb.set(sx + (hash(tx, 3) % 8) as i32, sy, WHITE);
+            }
+        }
+        TA_ON | TB_ON | TA_OFF | TB_OFF => {
+            let on = v == TA_ON || v == TB_ON;
+            // A warning flicker before a ledge goes.
+            let left = TICK - m.clock % TICK;
+            let warn = on && left < 36 && (t / 3) % 2 == 0;
+            let (a, b) = if v == TA_ON || v == TA_OFF {
+                (YELLOW, ORANGE)
+            } else {
+                (CYAN, LBLUE)
+            };
+            if on && !warn {
+                fb.hline(sx, sx + T - 1, sy, a);
+                fb.rect(sx, sy + 1, T, 2, b);
+                fb.set(sx + 3, sy + 1, BLACK);
+                fb.hline(sx + 1, sx + T - 2, sy + 3, BROWN);
+            } else {
+                // Gone: only an outline of dots shows where it comes back.
+                for x in (0..T).step_by(2) {
+                    fb.set(sx + x, sy + 1, if on { a } else { DGREY });
+                }
+            }
+        }
         _ => {}
     }
 }
@@ -694,6 +963,85 @@ pub fn draw_deco(fb: &mut Fb, m: &Map, th: Theme, ox: i32, oy: i32, t: u32) {
                 fb.rect(sx - 4, sy - 7, 9, 7, p.wood[0]);
                 fb.hline(sx - 4, sx + 4, sy - 8, p.wood[1]);
                 fb.set(sx, sy - 6, BLACK);
+            }
+            Deco::Window => {
+                // A tall stained-glass window, lit from outside.
+                let (w, h) = (12, 34);
+                for yy in 0..h {
+                    let half = if yy < 6 { (yy * w / 2) / 6 } else { w / 2 };
+                    for xx in -half..=half {
+                        let pane = ((xx + 6) / 3 + yy / 5) % 4;
+                        let lead = (xx + 6) % 3 == 0 || yy % 5 == 0;
+                        let c = if lead {
+                            BLACK
+                        } else {
+                            [PURPLE, BLUE, LRED, CYAN][pane as usize]
+                        };
+                        fb.set(sx + xx, sy - 10 - h + yy, c);
+                    }
+                }
+                fb.rect(sx - 7, sy - 10, 15, 2, GREY);
+            }
+            Deco::Gear => {
+                let r = 12;
+                let a0 = t as f32 * 0.02 * if x % 2 == 0 { 1.0 } else { -1.0 };
+                fb.circle(sx, sy - 20, r, BROWN);
+                fb.circle(sx, sy - 20, r - 1, ORANGE);
+                fb.disc(sx, sy - 20, 3, BROWN);
+                for k in 0..8 {
+                    let a = a0 + k as f32 * std::f32::consts::FRAC_PI_4;
+                    let (c, s2) = (a.cos(), a.sin());
+                    fb.line(
+                        sx,
+                        sy - 20,
+                        sx + (c * r as f32) as i32,
+                        sy - 20 + (s2 * r as f32) as i32,
+                        BROWN,
+                    );
+                    fb.disc(
+                        sx + (c * (r + 2) as f32) as i32,
+                        sy - 20 + (s2 * (r + 2) as f32) as i32,
+                        1,
+                        ORANGE,
+                    );
+                }
+            }
+            Deco::Torch => {
+                fb.rect(sx - 1, sy - 22, 3, 8, BROWN);
+                let f = (t / 4 + x as u32) % 3;
+                fb.disc(sx, sy - 25, 2, ORANGE);
+                fb.set(sx, sy - 28 - f as i32, YELLOW);
+                fb.set(sx - 1, sy - 27, YELLOW);
+                fb.set(sx + 1, sy - 26 - f as i32 % 2, RED);
+            }
+            Deco::Banner => {
+                fb.hline(sx - 7, sx + 7, sy - 46, BROWN);
+                for yy in 0..24 {
+                    let sway = ((t as f32 * 0.04 + yy as f32 * 0.2).sin() * 1.0) as i32;
+                    let w = if yy > 20 { 21 - yy } else { 6 };
+                    fb.hline(
+                        sx - w + sway,
+                        sx + w + sway,
+                        sy - 45 + yy,
+                        if yy % 8 == 4 { LRED } else { RED },
+                    );
+                }
+                fb.set(sx, sy - 37, BLACK);
+                fb.set(sx - 1, sy - 36, BLACK);
+                fb.set(sx + 1, sy - 36, BLACK);
+            }
+            Deco::Crystal => {
+                fb.line(sx, sy - 1, sx - 3, sy - 16, LBLUE);
+                fb.line(sx + 1, sy - 1, sx - 2, sy - 16, CYAN);
+                fb.line(sx + 2, sy - 1, sx + 5, sy - 11, LBLUE);
+                fb.set(sx - 3, sy - 17, WHITE);
+            }
+            Deco::Bones => {
+                fb.hline(sx - 5, sx + 4, sy - 2, LGREY);
+                fb.set(sx - 6, sy - 3, LGREY);
+                fb.set(sx + 5, sy - 1, LGREY);
+                fb.disc(sx + 7, sy - 3, 2, LGREY);
+                fb.set(sx + 7, sy - 3, BLACK);
             }
             Deco::Skull => {
                 fb.disc(sx, sy - 3, 2, LGREY);

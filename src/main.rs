@@ -33,7 +33,7 @@ Usage: nirux-ii [OPTIONS]
   --windowed            start in a window (default: fullscreen, see config)
   --fullscreen          start fullscreen
   --demo                start in the attract mode demo
-  --level N             start a game at stage N (1 to 2)
+  --level N             start a game at stage N (1 to 7)
   --snap SCREEN FRAMES FILE
                         write a picture of a screen after FRAMES steps
                         (title, storyN, introN, levelN, ending, controls)

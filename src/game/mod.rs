@@ -18,8 +18,8 @@ use crate::sfx::Sfx;
 use crate::songs::SongId;
 use common::{Out, Stats, Status};
 
-/// The stages in this version (seven are planned; see docs/NIRUX-II.md).
-pub const LEVELS: usize = 2;
+/// The seven stages of the Undercroft.
+pub const LEVELS: usize = 7;
 
 pub trait Level {
     fn update(&mut self, inp: &Input, st: &mut Stats, out: &mut Out) -> Status;
@@ -73,39 +73,88 @@ pub const INFO: [Info; LEVELS] = [
         border: GREEN,
         song: SongId::Stage2,
     },
+    Info {
+        name: "ARCHIVE CATHEDRAL",
+        mode: "WHERE THE DELETED SING",
+        brief: [
+            "CLIMB, NIRUX. IT IS ALL STAIRS.",
+            "THE CHOIR WAITS AT THE TOP.",
+        ],
+        tip: ["GHOSTS PASS THROUGH STONE", "THE LAMP HOLDS THEM STILL"],
+        border: PURPLE,
+        song: SongId::Stage3,
+    },
+    Info {
+        name: "CRON TOWER",
+        mode: "WHERE THE BELLS ARE WOUND",
+        brief: ["THE LEDGES KEEP TIME. SO MUST", "YOU. WAIT FOR THE TICK."],
+        tip: ["CLOCKWORK LEDGES FLICKER", "BEFORE THEY GO"],
+        border: ORANGE,
+        song: SongId::Stage4,
+    },
+    Info {
+        name: "FROZEN CACHE",
+        mode: "WHERE THE OLD DATA SLEEPS",
+        brief: [
+            "THE ICE... SLIPPERY. ICICLES.",
+            "I AM... FADING. KEEP GOING.",
+        ],
+        tip: ["ON ICE YOU SLIDE: STOP EARLY", "ICICLES FALL WHEN YOU PASS"],
+        border: LBLUE,
+        song: SongId::Stage5,
+    },
+    Info {
+        name: "KERNEL CRYPT",
+        mode: "WHERE THE DAEMONS WAKE",
+        brief: [
+            "LAVA... DAEMONS... SOMEONE ELSE",
+            "IS HERE. I CANNOT SEE WHO.",
+        ],
+        tip: [
+            "LAVA BURNS A PIECE OF THE SCARF",
+            "THE HAMMER GOES OVER SHIELDS",
+        ],
+        border: RED,
+        song: SongId::Stage6,
+    },
+    Info {
+        name: "NULL'S KEEP",
+        mode: "WHERE NOTHING RETURNS",
+        brief: ["##... NIRUX... ##... END IT.", "##... COME HOME."],
+        tip: [
+            "EVERYTHING YOU HAVE LEARNED",
+            "NULL NEVER SHOWS ITS WHOLE SELF",
+        ],
+        border: PURPLE,
+        song: SongId::Stage7,
+    },
 ];
 
 pub fn make_level(n: usize, d: Difficulty, seed: u32) -> Box<dyn Level> {
     use stage::{Spec, Stage};
     use world::Theme;
-    match n {
-        0 => Box::new(Stage::new(
-            Spec {
-                theme: Theme::Graveyard,
-                rain: 60,
-                fog: false,
-                border: BLUE,
-                hud: BLUE,
-            },
-            stages::graveyard(),
-            d,
-            seed,
-            0,
-        )),
-        _ => Box::new(Stage::new(
-            Spec {
-                theme: Theme::Marsh,
-                rain: 18,
-                fog: true,
-                border: GREEN,
-                hud: GREEN,
-            },
-            stages::marsh(),
-            d,
-            seed,
-            1,
-        )),
-    }
+    let (theme, rain, fog, border, built) = match n {
+        0 => (Theme::Graveyard, 60, false, BLUE, stages::graveyard()),
+        1 => (Theme::Marsh, 18, true, GREEN, stages::marsh()),
+        2 => (Theme::Cathedral, 0, false, PURPLE, stages::cathedral()),
+        3 => (Theme::Tower, 30, false, ORANGE, stages::tower()),
+        4 => (Theme::Ice, 0, true, LBLUE, stages::ice()),
+        5 => (Theme::Crypt, 0, false, RED, stages::crypt()),
+        _ => (Theme::Keep, 90, false, PURPLE, stages::keep()),
+    };
+    Box::new(Stage::new(
+        Spec {
+            theme,
+            rain,
+            fog,
+            border,
+            hud: border,
+        },
+        built,
+        d,
+        seed,
+        n,
+    ))
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -735,14 +735,30 @@ const CREDITS: &[&str] = &[
     "THE REAPER",
     "AND NULL",
     "",
-    "* THE STAGES SO FAR *",
+    "* THE UNDERCROFT *",
     "THE PROCESS GRAVEYARD",
     "THE SWAP MARSH",
+    "THE ARCHIVE CATHEDRAL",
+    "THE CRON TOWER",
+    "THE FROZEN CACHE",
+    "THE KERNEL CRYPT",
+    "NULL'S KEEP",
+    "",
+    "* THE FALLEN *",
+    "THE GRAVEDIGGER",
+    "THE BOG DAEMON",
+    "THE CHOIR OF THE DELETED",
+    "THE CLOCKWORK WARDEN",
+    "THE FROST WYRM",
+    "THE DAEMON LORD",
     "",
     "* THE SOUNDTRACK *",
     "DAEMONS  DESCENT",
     "GRAVEYARD  MARSH",
-    "THE BELLS TOLL",
+    "CATHEDRAL  CLOCKWORK",
+    "FROST  KERNEL  THE KEEP",
+    "THE BELLS TOLL  NULL",
+    "HOME",
     "",
     "PLAYED LIVE BY A",
     "THREE VOICE SYNTHESISER",
@@ -756,10 +772,10 @@ const CREDITS: &[&str] = &[
     "THANK YOU FOR PLAYING",
     "",
     "",
-    "NIRUX GOES DEEPER IN",
+    "THE GUARDIAN RESTS.",
     "",
-    "THE ARCHIVE",
-    "CATHEDRAL",
+    "NIRUX WILL",
+    "RETURN",
 ];
 
 /// How far the credits scroll before they stop.
@@ -783,12 +799,12 @@ fn victory(g: &Game, fb: &mut Fb) {
         crate::hero::draw(fb, 160, 40, 17.0, t, 1.0);
         let score = format!("FINAL SCORE {:07}", g.stats.score);
         let lines = [
-            "THE BOG DAEMON SINKS FOR GOOD.",
-            "THE MARSH FALLS SILENT.",
+            "NULL IS GONE. THE REAPER TOOK",
+            "WHAT WAS LEFT WHERE NOTHING RETURNS.",
             "",
-            "BELOW IT THE ARCHIVE CATHEDRAL",
-            "RINGS WITH THE CHOIR OF THE DELETED,",
-            "AND NULL LISTENS.",
+            "THE UNDERCROFT FALLS QUIET, AND",
+            "ECHO SPEAKS CLEAR AGAIN:",
+            "COME HOME, NIRUX.",
             "",
             &score,
         ];
@@ -796,8 +812,8 @@ fn victory(g: &Game, fb: &mut Fb) {
             if t as usize > 40 + i * 30 {
                 let c = if i == 0 {
                     [YELLOW, WHITE, CYAN][(t as usize / 6) % 3]
-                } else if (3..6).contains(&i) {
-                    LRED
+                } else if i == 5 {
+                    LGREEN
                 } else {
                     LGREY
                 };
