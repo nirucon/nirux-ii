@@ -1,6 +1,6 @@
 [package]
 name = "nirux-ii"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.85"
 description = "NIRUX II - Night of the Daemons, an original Commodore 64 style action platformer for the NIRUX desktop"

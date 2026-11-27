@@ -1,5 +1,11 @@
 # Changelog
 
+# NIRUX II 0.1.1
+
+- The installer accepts the program it built (it looked for "NIRUX" in
+  the version line, which says "NIRUX II"). CI now installs into a
+  temporary home on every run.
+
 # NIRUX II 0.1.0
 
 The first two stages of NIRUX II - NIGHT OF THE DAEMONS.

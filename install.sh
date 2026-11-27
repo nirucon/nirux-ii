@@ -90,7 +90,7 @@ fi
 printf "Building NIRUX II %s with Rust %s…\n" "$VERSION" "$rust_ver"
 cargo build --release --locked
 BINARY="${CARGO_TARGET_DIR:-$ROOT/target}/release/nirux-ii"
-"$BINARY" --version | grep -qx "NIRUX $VERSION" || { printf "%sERROR%s the built program does not run.\n" "$R" "$N"; exit 1; }
+"$BINARY" --version | grep -qx "NIRUX II $VERSION" || { printf "%sERROR%s the built program does not run.\n" "$R" "$N"; exit 1; }
 
 mkdir -p "$BIN" "$APPS" "$ICONS"
 # An atomic rename: a running game keeps its old file.

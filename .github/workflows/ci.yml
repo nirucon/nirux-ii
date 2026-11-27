@@ -34,6 +34,13 @@ jobs:
           done
       - name: End-to-end X11 test
         run: NIRUX_TEST_LOG="$RUNNER_TEMP/xvfb-trace.log" sh tests/xvfb.sh target/release/nirux-ii 99
+      - name: Install into a temporary home
+        run: |
+          T=$(mktemp -d)
+          HOME="$T" CARGO_HOME="$HOME/.cargo" RUSTUP_HOME="$HOME/.rustup" \
+            CARGO_TARGET_DIR="$PWD/target" bash ./install.sh --no-deps
+          "$T/.local/bin/nirux-ii" --version
+          test -f "$T/.local/share/applications/nirux-ii.desktop"
       - name: Shell scripts
         run: bash -n install.sh && bash -n uninstall.sh && sh -n tests/xvfb.sh
       - name: Keep the trace of a failed run
